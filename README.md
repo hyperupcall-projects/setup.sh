@@ -90,3 +90,6 @@ EOF
 }
 ```
 
+See more examples [here](https://github.com/hyperupcall/dotfiles/tree/trunk/os-unix/setup-apps), [here](https://github.com/hyperupcall/dotfiles/tree/trunk/os-unix/setup-devtool), and [here](https://github.com/hyperupcall/dotfiles/tree/trunk/os-unix/setup-other).
+
+This isn't quite ready to be used yet. I have to remove hardcoded `~/.dotfiles` paths and vendor dependencies like `bash-core` and `bash-term` in this repository.
