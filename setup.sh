@@ -13,24 +13,13 @@
 		set -o globstar
 	fi
 
-	# Source libraries.
-	source ~/.dotfiles/os-unix/data/xdg.sh
-	for _f in \
-		~/.dotfiles/vendor/bash-core/pkg/**/*.sh \
-		~/.dotfiles/vendor/bash-term/pkg/**/*.sh; \
-	do
-		source "$_f"
-	done; unset -v _f
-
-	if [ -n "${DEBUG+x}" ]; then
-		err_handler() {
-			exit_code=$1
-			core.print_stacktrace
-		}
-		core.trap_add 'err_handler' ERR EXIT
+	# Check for necessary variables.
+	if [ -z "$GITHUB_TOKEN" ]; then
+		core.print_die "Expected GITHUB_TOKEN to be non-empty"
 	fi
-
-	# Check for assumptions.
+	if [ -z "$CURL_CONFIG" ]; then
+		core.print_die "Expected CURL_CONFIG to be non-empty"
+	fi
 	if [ -z "$XDG_CONFIG_HOME" ]; then
 		printf '%s\n' 'Failed because $XDG_CONFIG_HOME is empty' >&2
 		exit 1
@@ -44,7 +33,13 @@
 		exit 1
 	fi
 
-	CURL_CONFIG="$HOME/.dotfiles/os-unix/data/curl_config.conf"
+	if [ -n "${DEBUG+x}" ]; then
+		err_handler() {
+			exit_code=$1
+			core.print_stacktrace
+		}
+		core.trap_add 'err_handler' ERR EXIT
+	fi
 }
 
 _main() {
@@ -371,19 +366,12 @@ util.get_latest_github_tag() {
 	unset -v REPLY; REPLY=
 	local repo="$1"
 
-	if [ ! -f ~/.dotfiles/.data/github_token ]; then
-		core.print_die "Error: File not found: ~/.dotfiles/.data/github_token"
-	fi
-
 	core.print_info "Getting latest version of: $repo"
-
-	local token=
-	token="$(<~/.dotfiles/.data/github_token)"
 
 	local tag_name=
 	tag_name=$(curl -K "$CURL_CONFIG" -H "Authorization: token: $token" "https://api.github.com/repos/$repo/releases/latest" | jq -r '.tag_name')
 
-	core.print_info "Latest version of \"$repo\": \"$tag_name\""
+	core.print_info "Latest version of $GITHUB_TOKEN: $tag_name"
 
 	REPLY=$tag_name
 }
@@ -520,6 +508,10 @@ util.remove_shellfile() {
 
 	local shell=
 	for shell in sh bash zsh ksh fish elvish tcsh; do
-		rm -f "$HOME/.dotfiles/.home/xdg_config_dir/$shell/$dirname/_$name.$shell"
+		local output_file="$XDG_CONFIG_HOME/$shell/$dirname/_$name.$shell"
+		if [ -f "$output_file" ]; then
+			core.print_info "Writing to \"$output_file\""
+			rm -f "$output_file"
+		fi
 	done
 }
