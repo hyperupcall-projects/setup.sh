@@ -510,7 +510,7 @@ util.write_shellfile() {
 
 		local output_file="$XDG_CONFIG_HOME/$shell/$dirname/_$name.$shell"
 		core.print_info "Writing to \"$output_file\""
-		mkdir -p "$XDG_CONFIG_HOME/$shell/$dirname"
+		mkdir -p "${output_file%/*}"
 		: > "$output_file"
 		local line=
 		while IFS= read -r line; do
@@ -528,8 +528,42 @@ util.remove_shellfile() {
 	for shell in sh bash zsh ksh fish elvish tcsh; do
 		local output_file="$XDG_CONFIG_HOME/$shell/$dirname/_$name.$shell"
 		if [ -f "$output_file" ]; then
-			core.print_info "Writing to \"$output_file\""
+			core.print_info "Removing from \"$output_file\""
 			rm -f "$output_file"
 		fi
+	done
+}
+
+util.write_promptfile() {
+	local name="$1"
+	shift
+
+	while (($# >= 2)); do
+		local shell="${1#--}"
+		local content="$2"
+		shift 2
+
+		local dirname=
+		case $shell in
+			sh) dirname='shell.d' ;;
+			bash) dirname='bash.d' ;;
+			zsh) dirname='zsh.d' ;;
+			ksh) dirname='ksh.d' ;;
+			fish) dirname='fish.d' ;;
+			elvish) dirname='elvish.d' ;;
+			tcsh) dirname='tcsh.d' ;;
+			*) core.print_die "Invalid shell \"$shell\"" ;;
+		esac
+
+		local output_file="$XDG_STATE_HOME/dotfiles-shell-prompts/${shell%.d}/_$name.txt"
+		core.print_info "Writing to \"$output_file\""
+		mkdir -p "${output_file%/*}"
+		: > "$output_file"
+		local line=
+		while IFS= read -r line; do
+			line="${line#"${line%%[![:space:]]*}"}"
+			printf '%s\n' "$line" >> "$output_file"
+		done <<< "$content"
+		unset -v line
 	done
 }
