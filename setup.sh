@@ -43,18 +43,19 @@
 }
 
 _main() {
-	local orig_dir="$PWD" temp_dir=
-	temp_dir=$(mktemp -d --suffix "-dotfiles")
-	cd "$temp_dir" || exit $?
+	local orig_dir="$PWD"
+	g_temp_dir=$(mktemp -d --suffix "-dotfiles")
+	cd "$g_temp_dir"
 	_setup_cleanup1() {
-		rm -rf "$temp_dir"
+		cd /
+		rm -rf "$g_temp_dir"
 	}
 	core.trap_add '_setup_cleanup1' ERR EXIT
 
 	main "$@"
 
 	cd "$orig_dir"
-	rm -rf "$temp_dir"
+	rm -rf "$g_temp_dir"
 }
 
 _setup() {
@@ -104,11 +105,12 @@ EOF
 		return
 	fi
 
-	local orig_dir="$PWD" temp_dir=
-	temp_dir=$(mktemp -d --suffix "-dotfiles")
-	cd "$temp_dir" || exit $?
+	local orig_dir2="$PWD"
+	g_temp_dir2=$(mktemp -d --suffix "-dotfiles")
+	cd "$g_temp_dir2"
 	_setup_cleanup2() {
-		rm -rf "$temp_dir"
+		cd /
+		rm -rf "$g_temp_dir2"
 	}
 	core.trap_add '_setup_cleanup2' ERR EXIT
 
@@ -135,18 +137,21 @@ EOF
 	# Configure first.
 	if declare -f 'configure' &>/dev/null; then
 		core.print_info "Configuring \"$g_name\"..."
-		local orig_dir="$PWD" temp_dir=
-		temp_dir=$(mktemp -d --suffix "-dotfiles")
-		cd "$temp_dir"
+		local orig_dir3="$PWD"
+		g_temp_dir3=$(mktemp -d --suffix "-dotfiles")
+		cd "$g_temp_dir3"
 		_setup_cleanup3() {
-			rm -rf "$temp_dir"
+			cd /
+			rm -rf "$g_temp_dir3"
 		}
 		core.trap_add '_setup_cleanup3' ERR EXIT
 
 		(
 			configure "$@"
 		)
-		cd "$orig_dir"
+
+		cd "$orig_dir3"
+		rm -rf "$g_temp_dir3"
 	fi
 
 	if [ "$flag_configure_only" = 'no' ]; then
@@ -180,8 +185,8 @@ EOF
 		caveats
 	fi
 
-	cd "$orig_dir"
-	rm -rf "$temp_dir"
+	cd "$orig_dir2"
+	rm -rf "$g_temp_dir2"
 }
 
 util.install_by_setup() {
