@@ -61,6 +61,7 @@ _setup() {
 	local flag_force=no
 	local flag_configure_only=no
 	local flag_no_confirm=no
+	local flag_dev=
 	local flag_help=no
 
 	local arg=
@@ -76,6 +77,10 @@ _setup() {
 			;;
 		--no-confirm)
 			flag_no_confirm=yes
+			shift
+			;;
+		--dev)
+			flag_dev=--dev
 			shift
 			;;
 		--help)
@@ -163,7 +168,7 @@ EOF
 		fi
 
 		(
-			main "$@"
+			main $flag_dev "$@"
 		)
 	fi
 
@@ -181,6 +186,7 @@ EOF
 
 util.install_by_setup() {
 	local flag_fn_prefix=install
+	local flag_dev=false
 	local program_name=$g_name
 
 	local arg=
@@ -195,6 +201,9 @@ util.install_by_setup() {
 				core.print_die "Expected a value for --fn-prefix"
 			fi
 			shift
+			;;
+		--dev)
+			flag_dev=true
 			;;
 		-*)
 			core.print_die "Invalid flag \"$arg\""
@@ -221,8 +230,12 @@ util.install_by_setup() {
 
 		local ran_function=no
 		local id=
-		for id in "$ID" "$ID_LIKE" any; do
+		for id in source "$ID" "$ID_LIKE" any; do
 			if declare -f "$flag_fn_prefix.$id" &>/dev/null; then
+				if [ "$id" = 'source' ] && [ "$flag_dev" != true ]; then
+					break
+				fi
+
 				ran_function=yes
 				if command -v installed &>/dev/null; then
 					if ! installed || [ "$flag_force" = 'yes' ]; then
