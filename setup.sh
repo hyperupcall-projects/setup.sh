@@ -13,25 +13,8 @@
 		set -o globstar
 	fi
 
-	# Check for necessary variables.
-	if [ -z "$GITHUB_TOKEN" ]; then
-		core.print_die "Expected GITHUB_TOKEN to be non-empty"
-	fi
-	if [ -z "$CURL_CONFIG" ]; then
-		core.print_die "Expected CURL_CONFIG to be non-empty"
-	fi
-	if [ -z "$XDG_CONFIG_HOME" ]; then
-		printf '%s\n' 'Failed because $XDG_CONFIG_HOME is empty' >&2
-		exit 1
-	fi
-	if [ -z "$XDG_DATA_HOME" ]; then
-		printf '%s\n' 'Failed because $XDG_DATA_HOME is empty' >&2
-		exit 1
-	fi
-	if [ -z "$XDG_STATE_HOME" ]; then
-		printf '%s\n' 'Failed because $XDG_STATE_HOME is empty' >&2
-		exit 1
-	fi
+	declare -ga CURL_CONFIG
+	CURL_CONFIG=(--proto '=https' --tlsv1.2 --show-error --location)
 
 	if [ -n "${DEBUG+x}" ]; then
 		err_handler() {
@@ -291,8 +274,8 @@ pkg.add_apt_key() {
 	if [ ! -f "$dest_file" ] || [ ! -s "$dest_file" ]; then
 		core.print_info "Downloading and writing key to $dest_file"
 		sudo mkdir -p "${dest_file%/*}"
-		curl -K "$CURL_CONFIG" "$source_url" \
-			| sudo tee "$dest_file" >/dev/null
+		curl "${CURL_CONFIG[@]}" "$source_url" |
+			sudo tee "$dest_file" >/dev/null
 	fi
 }
 
@@ -386,10 +369,17 @@ util.get_latest_github_tag() {
 
 	core.print_info "Getting latest version of: $repo"
 
-	local tag_name=
-	tag_name=$(curl -K "$CURL_CONFIG" -H "Authorization: token: $token" "https://api.github.com/repos/$repo/releases/latest" | jq -r '.tag_name')
+	local -a authorization=()
+	if [ -n "$GITHUB_TOKEN" ]; then
+		authorization=(-H "Authorization: token: $GITHUB_TOKEN")
+	else
+		core.print_warn "Expected GITHUB_TOKEN to be non-empty"
+	fi
 
-	core.print_info "Latest version of $GITHUB_TOKEN: $tag_name"
+	local tag_name=
+	tag_name=$(curl "${CURL_CONFIG[@]}" "${authorization[@]}" "https://api.github.com/repos/$repo/releases/latest" | jq -r '.tag_name')
+
+	core.print_info "Latest version of $repo: $tag_name"
 
 	REPLY=$tag_name
 }
@@ -508,7 +498,7 @@ util.write_shellfile() {
 			*) core.print_die "Invalid shell \"$shell\"" ;;
 		esac
 
-		local output_file="$XDG_CONFIG_HOME/$shell/$dirname/_$name.$shell"
+		local output_file="${XDG_CONFIG_HOME:-$HOME/.config}/$shell/$dirname/_$name.$shell"
 		core.print_info "Writing to \"$output_file\""
 		mkdir -p "${output_file%/*}"
 		: > "$output_file"
@@ -526,7 +516,7 @@ util.remove_shellfile() {
 
 	local shell=
 	for shell in sh bash zsh ksh fish elvish tcsh; do
-		local output_file="$XDG_CONFIG_HOME/$shell/$dirname/_$name.$shell"
+		local output_file="${XDG_CONFIG_HOME:-$HOME/.config}/$shell/$dirname/_$name.$shell"
 		if [ -f "$output_file" ]; then
 			core.print_info "Removing from \"$output_file\""
 			rm -f "$output_file"
@@ -555,7 +545,7 @@ util.write_promptfile() {
 			*) core.print_die "Invalid shell \"$shell\"" ;;
 		esac
 
-		local output_file="$XDG_STATE_HOME/dotfiles-shell-prompts/${shell%.d}/_$name.txt"
+		local output_file="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles-shell-prompts/${shell%.d}/_$name.txt"
 		core.print_info "Writing to \"$output_file\""
 		mkdir -p "${output_file%/*}"
 		: > "$output_file"
