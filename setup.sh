@@ -137,6 +137,26 @@ EOF
 		rm -rf "$g_temp_dir3"
 	fi
 
+	# Install from source if install.source function exists.
+	if declare -f 'install.source' &>/dev/null; then
+		core.print_info "Installing \"$g_name\" from source..."
+		local orig_dir4="$PWD"
+		g_temp_dir4=$(mktemp -d --suffix "-dotfiles")
+		cd "$g_temp_dir4"
+		_setup_cleanup4() {
+			cd /
+			rm -rf "$g_temp_dir4"
+		}
+		core.trap_add '_setup_cleanup4' ERR EXIT
+
+		(
+			install.source "$@"
+		)
+
+		cd "$orig_dir4"
+		rm -rf "$g_temp_dir4"
+	fi
+
 	if [ "$flag_configure_only" = 'no' ]; then
 		if installed && [ "$flag_force" = no ]; then
 			core.print_info "Program \"$g_name\" already installed"
