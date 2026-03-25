@@ -75,7 +75,8 @@ _setup() {
 			core.print_die "Invalid flag \"$arg\""
 			;;
 		esac
-	done; unset -v arg
+	done
+	unset -v arg
 
 	if [ "$flag_help" = 'yes' ]; then
 		util.get_script_path
@@ -83,7 +84,7 @@ _setup() {
 
 		local script=${script_path}
 		cat <<EOF
-~${script_path/#"$HOME"} [--force] [--configure-only] [--no-confirm]
+~${script_path/#"$HOME"/} [--force] [--configure-only] [--no-confirm]
 EOF
 		return
 	fi
@@ -220,7 +221,8 @@ util.install_by_setup() {
 			break
 			;;
 		esac
-	done; unset -v arg
+	done
+	unset -v arg
 
 	(
 		# A list of 'os-release' files can be found at https://github.com/which-distro/os-release.
@@ -254,7 +256,8 @@ util.install_by_setup() {
 					core.print_info "File \"$program_name\" has not function \"installed\""
 				fi
 			fi
-		done; unset -v id
+		done
+		unset -v id
 		if [ "$ran_function" = no ]; then
 			local text="\"$flag_fn_prefix.$ID\" or \"$flag_fn_prefix.$ID_LIKE\""
 			if [ "$ID" = "$ID_LIKE" ]; then
@@ -321,7 +324,7 @@ pkg.add_apt_repository() {
 			core.print_die "Invalid start of entry in content for \"$dest_file\""
 		fi
 		file_content+="$line"$'\n'
-	done <<< "${content:1}"
+	done <<<"${content:1}"
 
 	printf '%s' "${file_content::-1}" | sudo tee "$dest_file" >/dev/null
 }
@@ -384,7 +387,8 @@ util.confirm() {
 }
 
 util.get_latest_github_tag() {
-	unset -v REPLY; REPLY=
+	unset -v REPLY
+	REPLY=
 	local repo="$1"
 
 	core.print_info "Getting latest version of: $repo"
@@ -481,8 +485,8 @@ util.if_file_sourced() {
 		fi
 	elif [ -n "$ZSH_VERSION" ]; then
 		case $ZSH_EVAL_CONTEXT in
-			toplevel:file*) return 0 ;;
-			*) return 1 ;;
+		toplevel:file*) return 0 ;;
+		*) return 1 ;;
 		esac
 	else
 		return 0
@@ -508,25 +512,25 @@ util.write_shellfile() {
 
 		local dirname=
 		case $shell in
-			sh) dirname='shell.d' ;;
-			bash) dirname='bash.d' ;;
-			zsh) dirname='zsh.d' ;;
-			ksh) dirname='ksh.d' ;;
-			fish) dirname='fish.d' ;;
-			elvish) dirname='elvish.d' ;;
-			tcsh) dirname='tcsh.d' ;;
-			*) core.print_die "Invalid shell \"$shell\"" ;;
+		sh) dirname='shell.d' ;;
+		bash) dirname='bash.d' ;;
+		zsh) dirname='zsh.d' ;;
+		ksh) dirname='ksh.d' ;;
+		fish) dirname='fish.d' ;;
+		elvish) dirname='elvish.d' ;;
+		tcsh) dirname='tcsh.d' ;;
+		*) core.print_die "Invalid shell \"$shell\"" ;;
 		esac
 
 		local output_file="${XDG_CONFIG_HOME:-$HOME/.config}/$shell/$dirname/_$name.$shell"
 		core.print_info "Writing to \"$output_file\""
 		mkdir -p "${output_file%/*}"
-		: > "$output_file"
+		: >"$output_file"
 		local line=
 		while IFS= read -r line; do
 			line="${line#"${line%%[![:space:]]*}"}"
-			printf '%s\n' "$line" >> "$output_file"
-		done <<< "$content"
+			printf '%s\n' "$line" >>"$output_file"
+		done <<<"$content"
 		unset -v line
 	done
 }
@@ -555,25 +559,25 @@ util.write_promptfile() {
 
 		local dirname=
 		case $shell in
-			sh) dirname='shell.d' ;;
-			bash) dirname='bash.d' ;;
-			zsh) dirname='zsh.d' ;;
-			ksh) dirname='ksh.d' ;;
-			fish) dirname='fish.d' ;;
-			elvish) dirname='elvish.d' ;;
-			tcsh) dirname='tcsh.d' ;;
-			*) core.print_die "Invalid shell \"$shell\"" ;;
+		sh) dirname='shell.d' ;;
+		bash) dirname='bash.d' ;;
+		zsh) dirname='zsh.d' ;;
+		ksh) dirname='ksh.d' ;;
+		fish) dirname='fish.d' ;;
+		elvish) dirname='elvish.d' ;;
+		tcsh) dirname='tcsh.d' ;;
+		*) core.print_die "Invalid shell \"$shell\"" ;;
 		esac
 
 		local output_file="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles-shell-prompts/${shell%.d}/_$name.txt"
 		core.print_info "Writing to \"$output_file\""
 		mkdir -p "${output_file%/*}"
-		: > "$output_file"
+		: >"$output_file"
 		local line=
 		while IFS= read -r line; do
 			line="${line#"${line%%[![:space:]]*}"}"
-			printf '%s\n' "$line" >> "$output_file"
-		done <<< "$content"
+			printf '%s\n' "$line" >>"$output_file"
+		done <<<"$content"
 		unset -v line
 	done
 }
