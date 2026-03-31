@@ -149,7 +149,7 @@ EOF
 				# Variable "flag_force" is "yes".
 				core.print_info "Would you like to force install \"$g_name\"?"
 			else
-				core.print_info "Program \"$g_name\" not installed"
+				core.print_info "Program \"$g_name\" not fully installed"
 			fi
 			if ! util.confirm 'Fix?'; then
 				return
@@ -239,7 +239,7 @@ util.install_by_setup() {
 			if [ "$ID" = "$ID_LIKE" ]; then
 				text="\"$flag_fn_prefix.$ID\""
 			fi
-			core.print_die "Failed to find a \"$flag_fn_prefix.*\" function that matches the current distribution ($text)"
+			core.print_die "Function not found: $text"
 		fi
 	)
 }
