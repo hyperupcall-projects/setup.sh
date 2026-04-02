@@ -2,22 +2,13 @@
 
 `setup.sh` simplifies installing software for Linux.
 
-Below is an example. It can be placed at, say, `~/scripts/setup/vscode.sh`.
+To use it, write a file named, say, `~/scripts/setup/vscode.sh`, with contents like the following:
 
 ```bash
 #!/usr/bin/env bash
-
 source ~/.dotfiles/vendor/setup/setup.sh
 
 declare -g g_name='VSCode and VSCode Insiders'
-
-main() {
-	util.install_by_setup "$@"
-}
-
-install.arch() {
-	yay -S visual-studio-code-bin visual-studio-code-insiders-bin
-}
 
 install.debian() {
 	local gpg_file="/etc/apt/keyrings/microsoft.asc"
@@ -61,6 +52,10 @@ install.opensuse() {
 	sudo zypper -n install code code-insiders
 }
 
+install.arch() {
+	yay -S visual-studio-code-bin visual-studio-code-insiders-bin
+}
+
 installed() {
 	command -v code &>/dev/null && command -v code-insiders &>/dev/null
 }
@@ -92,4 +87,4 @@ EOF
 
 See more examples [here](https://github.com/hyperupcall/dotfiles/tree/trunk/os-unix/setup-apps), [here](https://github.com/hyperupcall/dotfiles/tree/trunk/os-unix/setup-devtool), and [here](https://github.com/hyperupcall/dotfiles/tree/trunk/os-unix/setup-other).
 
-This isn't quite ready to be used yet. I have to remove hardcoded `~/.dotfiles` paths and vendored dependencies like `bash-core` and `bash-term` in this repository.
+This isn't quite ready to be used yet. I have to remove vendored dependencies like `bash-core` and `bash-term` in this repository.
