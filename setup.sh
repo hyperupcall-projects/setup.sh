@@ -499,7 +499,7 @@ util.write_shellfile() {
 		esac
 
 		local output_file="${XDG_CONFIG_HOME:-$HOME/.config}/$shell/$dirname/_$name.$shell"
-		core.print_info "Writing to \"$output_file\""
+		core.print_debug "Writing to \"~${output_file#$HOME}\""
 		mkdir -p "${output_file%/*}"
 		: >"$output_file"
 		local line=
@@ -546,7 +546,7 @@ util.write_promptfile() {
 		esac
 
 		local output_file="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles-shell-prompts/${shell%.d}/_$name.txt"
-		core.print_info "Writing to \"$output_file\""
+		core.print_debug "Writing to \"~${output_file#$HOME}\""
 		mkdir -p "${output_file%/*}"
 		: >"$output_file"
 		local line=
