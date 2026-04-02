@@ -245,25 +245,30 @@ util.install_by_setup() {
 }
 
 util.install_by_setup_distro_package() {
-	local package="$1"
-	local command="$2"
+	local name="$1"
+	local package="$2"
+	local command="$3"
+	shift 3
 
-	install.debian() {
+	_by_distro_package.debian() {
 		sudo apt-get install -y "$package"
 	}
-	install.ubuntu() {
-		install.debian "$@"
+	_by_distro_package.ubuntu() {
+		_by_distro_package.debian "$@"
 	}
-	install.fedora() {
+	_by_distro_package.fedora() {
 		sudo dnf install -y "$package"
 	}
-	install.opensuse() {
+	_by_distro_package.opensuse() {
 		sudo zypper -n install "$package"
 	}
-	install.arch() {
+	_by_distro_package.arch() {
 		yay -Syu --noconfirm "$package"
 	}
-	util.install_by_setup "$@"
+	installed() {
+		command -v "$command" &>/dev/null
+	}
+	util.install_by_setup --fn-prefix=_by_distro_package "$@" "$name"
 }
 
 pkg.add_apt_key() {
