@@ -69,6 +69,15 @@ _setup() {
 }
 
 util.install_by_setup() {
+	local orig_dir2="$PWD"
+	g_temp_dir2=$(mktemp -d --suffix "-dotfiles")
+	cd "$g_temp_dir2"
+	_setup_cleanup2() {
+		cd /
+		rm -rf "$g_temp_dir2"
+	}
+	core.trap_add '_setup_cleanup2' ERR EXIT
+
 	local flag_configure_only=no
 	local flag_dev=false
 	local flag_fn_prefix=install
@@ -238,6 +247,9 @@ EOF
 	if declare -f 'caveats' &>/dev/null; then
 		caveats
 	fi
+
+	cd "$orig_dir2"
+	rm -rf "$g_temp_dir2"
 }
 
 util.install_by_setup_distro_package() {
