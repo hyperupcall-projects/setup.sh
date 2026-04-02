@@ -35,6 +35,13 @@ _main() {
 	}
 	core.trap_add '_setup_cleanup1' ERR EXIT
 
+	util.get_script_path
+	local script_path=$REPLY
+
+	if [ -n "$g_name" ]; then
+		core.print_die "Expected file \"$script_path\" to not have variable \"g_name\""
+	fi
+
 	main "$@"
 
 	cd "$orig_dir"
@@ -42,67 +49,11 @@ _main() {
 }
 
 _setup() {
-	local flag_force=no
-	local flag_configure_only=no
-	local flag_no_confirm=no
-	local flag_dev=
-	local flag_help=no
-
-	local arg=
-	for arg; do
-		case $arg in
-		--force)
-			flag_force=yes
-			shift
-			;;
-		--configure-only)
-			flag_configure_only=yes
-			shift
-			;;
-		--no-confirm)
-			flag_no_confirm=yes
-			shift
-			;;
-		--dev)
-			flag_dev=--dev
-			shift
-			;;
-		--help)
-			flag_help=yes
-			shift
-			;;
-		-*)
-			core.print_die "Invalid flag \"$arg\""
-			;;
-		esac
-	done
-	unset -v arg
-
-	if [ "$flag_help" = 'yes' ]; then
-		util.get_script_path
-		local script_path=$REPLY
-
-		local script=${script_path}
-		cat <<EOF
-~${script_path/#"$HOME"/} [--force] [--configure-only] [--no-confirm]
-EOF
-		return
-	fi
-
-	local orig_dir2="$PWD"
-	g_temp_dir2=$(mktemp -d --suffix "-dotfiles")
-	cd "$g_temp_dir2"
-	_setup_cleanup2() {
-		cd /
-		rm -rf "$g_temp_dir2"
-	}
-	core.trap_add '_setup_cleanup2' ERR EXIT
-
 	util.get_script_path
 	local script_path=$REPLY
 
 	if [ -z "$g_name" ]; then
-		core.print_die "Expected file \"$0\" to have variable \"g_name\""
+		core.print_die "Expected file \"$script_path\" to have variable \"g_name\""
 	fi
 
 	if [ "$g_disable" = 'true' ]; then
@@ -110,8 +61,90 @@ EOF
 		return 0
 	fi
 
-	if ! declare -f main &>/dev/null; then
-		core.print_die "Expected file \"$0\" to have function \"main\""
+	if declare -f main &>/dev/null; then
+		core.print_die "Expected file \"$script_path\" to not have function \"main\""
+	fi
+
+	util.install_by_setup "$@" "$g_name"
+}
+
+util.install_by_setup() {
+	local flag_configure_only=no
+	local flag_dev=false
+	local flag_fn_prefix=install
+	local flag_force=no
+	local flag_is_script=no
+	local flag_help=no
+	local flag_no_confirm=no
+	local program_name=
+
+	local arg=
+	for arg; do
+		case $arg in
+		--configure-only)
+			flag_configure_only=yes
+			shift
+			;;
+		--dev)
+			flag_dev=true
+			;;
+		--fn-prefix*)
+			core.shopt_push -s nullglob on
+			flag_fn_prefix=${arg#--fn-prefix}
+			flag_fn_prefix=${flag_fn_prefix#=}
+			core.shopt_pop
+			if [ -z "$flag_fn_prefix" ]; then
+				core.print_die "Expected a value for --fn-prefix"
+			fi
+			shift
+			;;
+		--force)
+			flag_force=yes
+			shift
+			;;
+		--help)
+			flag_help=yes
+			shift
+			;;
+		--is-script)
+			flag_is_script=yes
+			shift
+			;;
+		--no-confirm)
+			flag_no_confirm=yes
+			shift
+			;;
+		-*)
+			core.print_die "Invalid flag \"$arg\""
+			;;
+		--)
+			break
+			;;
+		esac
+	done
+	unset -v arg
+
+	if [ -n "$1" ]; then
+		program_name="$1"
+	else
+		core.print_die "Expected program name as first argument"
+	fi
+
+	if [ "$flag_help" = 'yes' ]; then
+		local exec=
+		if [ "$flag_is_script" = 'yes' ]; then
+			util.get_script_path
+			local script_path=$REPLY
+
+			exec=~${script_path/#"$HOME"/}
+		else
+			exec='util.install_by_setup'
+		fi
+		
+		cat <<EOF
+$exec [--configure-only] [--dev] [--force] [--help] [--no-confirm]
+EOF
+		return
 	fi
 
 	if ! declare -f installed &>/dev/null; then
@@ -120,7 +153,7 @@ EOF
 
 	# Configure first.
 	if declare -f 'configure' &>/dev/null; then
-		core.print_info "Configuring \"$g_name\"..."
+		core.print_info "Configuring '$program_name'..."
 		local orig_dir3="$PWD"
 		g_temp_dir3=$(mktemp -d --suffix "-dotfiles")
 		cd "$g_temp_dir3"
@@ -138,71 +171,26 @@ EOF
 		rm -rf "$g_temp_dir3"
 	fi
 
-	if [ "$flag_configure_only" = 'no' ]; then
-		if installed && [ "$flag_force" = no ]; then
-			core.print_info "Program \"$g_name\" already installed"
+	if [ "$flag_configure_only" = 'yes' ]; then
+		return
+	fi
+
+	if installed && [ "$flag_force" = no ]; then
+		core.print_info "$program_name is already installed"
+		return
+	fi
+
+	if [ "$flag_no_confirm" = 'no' ]; then
+		if installed; then
+			# Variable "flag_force" is "yes".
+			core.print_info "Would you like to force install \"$program_name\"?"
+		else
+			core.print_info "Program \"$program_name\" not fully installed"
+		fi
+		if ! util.confirm 'Fix?'; then
 			return
 		fi
-
-		if [ "$flag_no_confirm" = 'no' ]; then
-			if installed; then
-				# Variable "flag_force" is "yes".
-				core.print_info "Would you like to force install \"$g_name\"?"
-			else
-				core.print_info "Program \"$g_name\" not fully installed"
-			fi
-			if ! util.confirm 'Fix?'; then
-				return
-			fi
-		fi
-
-		(
-			main $flag_dev "$@"
-		)
 	fi
-
-	if ! installed; then
-		core.print_die "Attempted to install \"$g_name\", but failed"
-	fi
-
-	if declare -f 'caveats' &>/dev/null; then
-		caveats
-	fi
-
-	cd "$orig_dir2"
-	rm -rf "$g_temp_dir2"
-}
-
-util.install_by_setup() {
-	local flag_fn_prefix=install
-	local flag_dev=false
-	local program_name=$g_name
-
-	local arg=
-	for arg; do
-		case $arg in
-		--fn-prefix*)
-			core.shopt_push -s nullglob on
-			flag_fn_prefix=${arg#--fn-prefix}
-			flag_fn_prefix=${flag_fn_prefix#=}
-			core.shopt_pop
-			if [ -z "$flag_fn_prefix" ]; then
-				core.print_die "Expected a value for --fn-prefix"
-			fi
-			shift
-			;;
-		--dev)
-			flag_dev=true
-			;;
-		-*)
-			core.print_die "Invalid flag \"$arg\""
-			;;
-		--)
-			break
-			;;
-		esac
-	done
-	unset -v arg
 
 	(
 		# A list of 'os-release' files can be found at https://github.com/which-distro/os-release.
@@ -242,6 +230,14 @@ util.install_by_setup() {
 			core.print_die "Function not found: $text"
 		fi
 	)
+
+	if ! installed; then
+		core.print_die "Attempted to install \"$program_name\", but failed"
+	fi
+
+	if declare -f 'caveats' &>/dev/null; then
+		caveats
+	fi
 }
 
 util.install_by_setup_distro_package() {
@@ -415,8 +411,11 @@ util.update_system() {
 	update_system.arch() {
 		sudo pacman -Syyu --noconfirm
 	}
+	update_system.installed() {
+		return 1
+	}
 
-	util.install_by_setup --fn-prefix=update_system
+	util.install_by_setup --fn-prefix=update_system 'util.update_system'
 }
 
 util.install_by_setup_package() {
