@@ -13,8 +13,7 @@
 		set -o globstar
 	fi
 
-	declare -ga CURL_CONFIG
-	CURL_CONFIG=(--proto '=https' --tlsv1.2 --show-error --location)
+	declare -ga _CURL_CONFIG_SETUP=(--proto '=https' --tlsv1.2 --show-error --location)
 
 	if [ -n "${DEBUG+x}" ]; then
 		err_handler() {
@@ -286,7 +285,7 @@ pkg.add_apt_key() {
 	if [ ! -f "$dest_file" ] || [ ! -s "$dest_file" ]; then
 		core.print_info "Downloading and writing key to $dest_file"
 		sudo mkdir -p "${dest_file%/*}"
-		curl "${CURL_CONFIG[@]}" "$source_url" |
+		curl "${_CURL_CONFIG_SETUP[@]}" "$source_url" |
 			sudo tee "$dest_file" >/dev/null
 	fi
 }
@@ -390,7 +389,7 @@ util.get_latest_github_tag() {
 	fi
 
 	local tag_name=
-	tag_name=$(curl "${CURL_CONFIG[@]}" "${authorization[@]}" "https://api.github.com/repos/$repo/releases/latest" | jq -r '.tag_name')
+	tag_name=$(curl "${_CURL_CONFIG_SETUP[@]}" "${authorization[@]}" "https://api.github.com/repos/$repo/releases/latest" | jq -r '.tag_name')
 
 	core.print_info "Latest version of $repo: $tag_name"
 
