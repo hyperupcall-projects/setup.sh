@@ -122,11 +122,11 @@ util.install_by_setup() {
 			flag_no_confirm=yes
 			shift
 			;;
-		-*)
-			core.print_die "Invalid flag \"$arg\""
-			;;
 		--)
 			break
+			;;
+		-*)
+			core.print_die "Invalid flag \"$arg\""
 			;;
 		esac
 	done
@@ -148,7 +148,7 @@ util.install_by_setup() {
 		else
 			exec='util.install_by_setup'
 		fi
-		
+
 		cat <<EOF
 $exec [--configure-only] [--dev] [--force] [--help] [--no-confirm]
 EOF
@@ -362,7 +362,7 @@ util.confirm() {
 	local input=
 	until [[ $input =~ ^[yYnN]$ ]]; do
 		printf '%s' "$message "
-		read "${args[@]}"
+		read -r "${args[@]}"
 		input=$REPLY
 		printf '\n'
 	done
@@ -383,7 +383,7 @@ util.get_latest_github_tag() {
 
 	local -a authorization=()
 	if [ -n "$GITHUB_TOKEN" ]; then
-		authorization=(-H "Authorization: token: $GITHUB_TOKEN")
+		authorization=(-H "Authorization: token $GITHUB_TOKEN")
 	else
 		core.print_warn "Expected GITHUB_TOKEN to be non-empty"
 	fi
@@ -514,7 +514,7 @@ util.write_shellfile() {
 		esac
 
 		local output_file="${XDG_CONFIG_HOME:-$HOME/.config}/$shell/$dirname/_$name.$shell"
-		core.print_debug "Writing to \"~${output_file#$HOME}\""
+		core.print_debug "Writing to \"~${output_file#"$HOME"}\""
 		mkdir -p "${output_file%/*}"
 		: >"$output_file"
 		local line=
@@ -561,7 +561,7 @@ util.write_promptfile() {
 		esac
 
 		local output_file="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles-shell-prompts/${shell%.d}/_$name.txt"
-		core.print_debug "Writing to \"~${output_file#$HOME}\""
+		core.print_debug "Writing to \"~${output_file#"$HOME"}\""
 		mkdir -p "${output_file%/*}"
 		: >"$output_file"
 		local line=
