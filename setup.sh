@@ -84,6 +84,7 @@ util.install_by_setup() {
 	local flag_is_script=no
 	local flag_help=no
 	local flag_no_confirm=no
+	local flag_no_install_check=no
 	local program_name=
 
 	local arg=
@@ -122,6 +123,10 @@ util.install_by_setup() {
 			flag_no_confirm=yes
 			shift
 			;;
+		--no-install-check)
+			flag_no_install_check=yes
+			shift
+			;;
 		--)
 			break
 			;;
@@ -150,7 +155,7 @@ util.install_by_setup() {
 		fi
 
 		cat <<EOF
-$exec [--configure-only] [--dev] [--force] [--help] [--no-confirm]
+$exec [--configure-only] [--dev] [--force] [--help] [--no-confirm] [--no-install-check]
 EOF
 		return
 	fi
@@ -239,7 +244,7 @@ EOF
 		fi
 	)
 
-	if ! installed; then
+	if [ "$flag_no_install_check" != yes ] && ! installed; then
 		core.print_die "Attempted to install \"$program_name\", but failed"
 	fi
 
