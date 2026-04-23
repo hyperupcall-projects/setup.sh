@@ -382,9 +382,31 @@ util.confirm() {
 util.get_latest_github_tag() {
 	unset -v REPLY
 	REPLY=
-	local repo="$1"
 
-	core.print_info "Getting latest version of: $repo"
+	local flag_min_release_age=
+
+	local arg=
+	for arg; do
+		case $arg in
+		--min-release-age*)
+			flag_min_release_age=${arg#--min-release-age}
+			flag_min_release_age=${flag_min_release_age#=}
+			if [ -z "$flag_min_release_age" ]; then
+				core.print_die "Expected a value for --min-release-age"
+			fi
+			shift
+			;;
+		-*)
+			core.print_die "Invalid flag \"$arg\""
+			;;
+		*)
+			break
+			;;
+		esac
+	done
+	unset -v arg
+
+	local repo="$1"
 
 	local -a authorization=()
 	if [ -n "$GITHUB_TOKEN" ]; then
@@ -393,10 +415,46 @@ util.get_latest_github_tag() {
 		core.print_warn "Expected GITHUB_TOKEN to be non-empty"
 	fi
 
-	local tag_name=
-	tag_name=$(curl "${_CURL_CONFIG_SETUP[@]}" "${authorization[@]}" "https://api.github.com/repos/$repo/releases/latest" | jq -r '.tag_name')
+	core.print_info "Fetching releases for $repo"
+	local latest_tag_name=
+	latest_tag_name=$(curl "${_CURL_CONFIG_SETUP[@]}" "${authorization[@]}" \
+		"https://api.github.com/repos/$repo/releases/latest" | jq -r '.tag_name')
 
-	core.print_info "Latest version of $repo: $tag_name"
+	local tag_name=
+	if [ -z "$flag_min_release_age" ]; then
+		tag_name=$latest_tag_name
+		core.print_info "Using version $tag_name"
+	else
+		local page=1
+		while true; do
+			local releases=
+			releases=$(curl "${_CURL_CONFIG_SETUP[@]}" "${authorization[@]}" \
+				"https://api.github.com/repos/$repo/releases?per_page=100&page=$page")
+
+			local count=
+			count=$(printf '%s' "$releases" | jq 'length')
+
+			if (( count == 0 )); then
+				core.print_die "No releases found for $repo older than $flag_min_release_age hours"
+			fi
+
+			tag_name=$(printf '%s' "$releases" | jq -r \
+				--argjson min_age_hours "$flag_min_release_age" \
+				'[.[] | select(.prerelease == false and .draft == false and ((now - (.published_at | fromdateiso8601)) >= ($min_age_hours * 3600)))] | first | .tag_name // empty')
+
+			if [ -n "$tag_name" ]; then
+				break
+			fi
+
+			page=$((page + 1))
+		done
+
+		if [ "$tag_name" = "$latest_tag_name" ]; then
+			core.print_info "Using version $tag_name (is latest, older than $flag_min_release_age hours)"
+		else
+			core.print_info "Using version $tag_name (not latest, $latest_tag_name is too recent)"
+		fi
+	fi
 
 	REPLY=$tag_name
 }
