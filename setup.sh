@@ -383,7 +383,7 @@ util.get_latest_github_release() {
 	unset -v REPLY
 	REPLY=
 
-	local flag_min_release_age=
+	local flag_min_release_age=$((24 * 14)) # 14 days.
 
 	local arg=
 	for arg; do
