@@ -379,7 +379,7 @@ util.confirm() {
 	fi
 }
 
-util.get_latest_github_tag() {
+util.get_latest_github_release() {
 	unset -v REPLY
 	REPLY=
 
