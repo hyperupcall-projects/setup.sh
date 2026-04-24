@@ -26,7 +26,7 @@
 
 _main() {
 	local orig_dir="$PWD"
-	g_temp_dir=$(mktemp -d --suffix "-dotfiles")
+	g_temp_dir=$(mktemp -d --suffix="-dotfiles")
 	cd "$g_temp_dir"
 	_setup_cleanup1() {
 		cd /
@@ -69,7 +69,7 @@ _setup() {
 
 util.install_by_setup() {
 	local orig_dir2="$PWD"
-	g_temp_dir2=$(mktemp -d --suffix "-dotfiles")
+	g_temp_dir2=$(mktemp -d --suffix="-dotfiles")
 	cd "$g_temp_dir2"
 	_setup_cleanup2() {
 		cd /
@@ -168,7 +168,7 @@ EOF
 	if declare -f 'configure' &>/dev/null; then
 		core.print_info "Configuring '$program_name'..."
 		local orig_dir3="$PWD"
-		g_temp_dir3=$(mktemp -d --suffix "-dotfiles")
+		g_temp_dir3=$(mktemp -d --suffix="-dotfiles")
 		cd "$g_temp_dir3"
 		_setup_cleanup3() {
 			cd /
