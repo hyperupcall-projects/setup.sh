@@ -6,7 +6,7 @@ To use it, write a file named, say, `~/scripts/setup/vscode.sh`, with contents l
 
 ```bash
 #!/usr/bin/env bash
-source ~/.dotfiles/vendor/setup/setup.sh
+source ~/.dotfiles/vendor/setup.sh/setup.sh
 
 declare -g g_name='VSCode and VSCode Insiders'
 
