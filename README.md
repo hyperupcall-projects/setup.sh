@@ -56,7 +56,7 @@ install.arch() {
 	yay -S visual-studio-code-bin visual-studio-code-insiders-bin
 }
 
-installed() {
+install.installed() {
 	command -v code &>/dev/null && command -v code-insiders &>/dev/null
 }
 
@@ -66,14 +66,14 @@ util.if_file_sourced || _setup "$@"
 Some APIs are more experimental:
 
 ```sh
-configure() {
+install.configure() {
 	util.write_shellfile 'dircolors' \
 		--bash 'eval "$(dircolors -b "$XDG_CONFIG_HOME/dircolors/dir_colors")"' \
 		--zsh 'eval "$(dircolors -b "$XDG_CONFIG_HOME/dircolors/dir_colors")"' \
 		--tcsh 'eval "$(dircolors -c "$XDG_CONFIG_HOME/dircolors/dir_colors")"'
 }
 
-caveats() {
+install.caveats() {
 	cat <<"EOF"
 To  fix the scollbar, write to `~/.config/gtk-4.0/settings.ini`:
 

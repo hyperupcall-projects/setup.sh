@@ -160,12 +160,13 @@ EOF
 		return
 	fi
 
-	if ! declare -f installed &>/dev/null; then
-		core.print_die "Expected file \"$0\" to have function \"installed\""
+	if ! declare -f "$flag_fn_prefix.installed" &>/dev/null && [ "$flag_no_install_check" = no ]; then
+		core.print_die "Expected file \"$script_path\" to have function \"$flag_fn_prefix.installed\""
+		
 	fi
 
 	# Configure first.
-	if declare -f 'configure' &>/dev/null; then
+	if declare -f "$flag_fn_prefix.configure" &>/dev/null; then
 		core.print_info "Configuring '$program_name'..."
 		local orig_dir3="$PWD"
 		g_temp_dir3=$(mktemp -d --suffix="-dotfiles")
@@ -177,7 +178,7 @@ EOF
 		core.trap_add '_setup_cleanup3' ERR EXIT
 
 		(
-			configure "$@"
+			"$flag_fn_prefix.configure" "$@"
 		)
 
 		cd "$orig_dir3"
@@ -188,13 +189,13 @@ EOF
 		return
 	fi
 
-	if installed && [ "$flag_force" = no ]; then
+	if [ "$flag_no_install_check" = no ] && "$flag_fn_prefix.installed" && [ "$flag_force" = no ]; then
 		core.print_info "$program_name is already installed"
 		return
 	fi
 
 	if [ "$flag_no_confirm" = 'no' ]; then
-		if installed; then
+		if [ "$flag_no_install_check" = no ] && "$flag_fn_prefix.installed"; then
 			# Variable "flag_force" is "yes".
 			core.print_info "Would you like to force install \"$program_name\"?"
 		else
@@ -224,13 +225,14 @@ EOF
 		for id in source "$ID" "$ID_LIKE" any; do
 			if declare -f "$flag_fn_prefix.$id" &>/dev/null; then
 				ran_function=yes
-				if command -v installed &>/dev/null; then
-					if ! installed || [ "$flag_force" = 'yes' ]; then
-						"$flag_fn_prefix.$id" "$@"
-						break
-					fi
-				else
-					core.print_info "File \"$program_name\" has not function \"installed\""
+				if [ "$flag_no_install_check" = yes ]; then
+					"$flag_fn_prefix.$id" "$@"
+					break
+				fi
+
+				if ! "$flag_fn_prefix.installed" || [ "$flag_force" = 'yes' ]; then
+					"$flag_fn_prefix.$id" "$@"
+					break
 				fi
 			fi
 		done
@@ -243,13 +245,17 @@ EOF
 			core.print_die "Function not found: $text"
 		fi
 	)
+	# When installation fails
+	if (($? > 0)); then
+		core.print_die "Failed to install \"$program_name\""
+	fi
 
-	if [ "$flag_no_install_check" != yes ] && ! installed; then
+	if [ "$flag_no_install_check" = no ] && ! "$flag_fn_prefix.installed"; then
 		core.print_die "Attempted to install \"$program_name\", but failed"
 	fi
 
-	if declare -f 'caveats' &>/dev/null; then
-		caveats
+	if declare -f "$flag_fn_prefix.caveats" &>/dev/null; then
+		"$flag_fn_prefix.caveats"
 	fi
 
 	cd "$orig_dir2"
@@ -277,7 +283,7 @@ util.install_by_setup_distro_package() {
 	_by_distro_package.arch() {
 		yay -Syu --noconfirm "$package"
 	}
-	installed() {
+	_by_distro_package.installed() {
 		command -v "$command" &>/dev/null
 	}
 	util.install_by_setup --fn-prefix=_by_distro_package "$@" "$name"
@@ -486,10 +492,11 @@ util.update_system() {
 		sudo pacman -Syyu --noconfirm
 	}
 	update_system.installed() {
+		# Always update.
 		return 1
 	}
 
-	util.install_by_setup --fn-prefix=update_system 'util.update_system'
+	util.install_by_setup --fn-prefix=update_system --no-install-check 'util.update_system'
 }
 
 util.install_by_setup_package() {
