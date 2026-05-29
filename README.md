@@ -87,4 +87,4 @@ EOF
 
 See more examples [here](https://github.com/hyperupcall/dotfiles/tree/trunk/os-unix/setup-apps), [here](https://github.com/hyperupcall/dotfiles/tree/trunk/os-unix/setup-devtool), and [here](https://github.com/hyperupcall/dotfiles/tree/trunk/os-unix/setup-other).
 
-This isn't quite ready to be used yet. I have to remove vendored dependencies like `bash-core` and `bash-term` in this repository.
+Both `bash-core` (v0.12.0+dev) and `bash-term` (v0.6.3+dev) have been vendored into this repository. They're sourced automatically.

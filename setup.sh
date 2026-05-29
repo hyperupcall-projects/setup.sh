@@ -1,6 +1,56 @@
 # shellcheck shell=bash
 
 # shellcheck disable=SC2016
+if [ -z "${SETUPSH_SKIP_VENDOR_SOURCE:-}" ]; then
+	_curdir=${_curdir:-}
+
+	if [ -n "${BASH_VERSION:-}" ]; then
+		# Use BASH_SOURCE[0] to obtain the relative path to this source'd file. Since it's
+		# a relative path, 'cd' to its dirname and use '$PWD' to obtain the fullpath.
+		# Use 'builtin cd' to ensure user-defined 'cd()' functions aren't called.
+		# Use variable '_old_dir' to avoid using subshells.
+
+		_old_dir=$PWD
+		# shellcheck disable=SC3028,SC3054
+		if ! CDPATH= builtin cd -- "${BASH_SOURCE[0]%/*}"; then
+			printf '%s\n' 'setup.sh: Error: Failed to cd' >&2
+			unset -v _old_dir
+			return 1
+		fi
+		_curdir=$PWD
+		if ! CDPATH= builtin cd -- "$_old_dir"; then
+			printf '%s\n' 'setup.sh: Error: Failed to cd' >&2
+			unset -v _old_dir
+			return 1
+		fi
+		unset -v _old_dir
+	elif [ -n "${ZSH_VERSION:-}" ]; then
+		# Use '%x' to expand to path of current file. It must be prefixed
+		# with '(%):-', so it expands in non-prompt-string contexts.
+
+		# shellcheck disable=SC2296
+		_curdir=${(%):-%x}
+		_curdir=${_curdir%/*}
+	elif [ -n "${KSH_VERSION:-}" ] && [ -z "$PATHSEP" ]; then
+		# Only the original KornShell (kornshell.com) has a '.sh.file' variable with the path
+		# of the current file. To prevent errors with other variations, such as the MirBSD
+		# Korn shell (mksh), test for 'PATHSEP' which is _not_ set on the original Korn Shell.
+
+		# shellcheck disable=SC2296
+		_curdir=${.sh.file}
+		_curdir=${_curdir%/*}
+	fi
+
+	if [ -z "$_curdir" ]; then
+		printf "%s\n" "setup.sh: Error: curdir could not be calculated." >&2
+		return 1
+	fi
+
+	source "$_curdir/vendor.sh"
+	unset -v _curdir
+fi
+
+# shellcheck disable=SC2016
 {
 	# Set options.
 	set -e
@@ -162,7 +212,7 @@ EOF
 
 	if ! declare -f "$flag_fn_prefix.installed" &>/dev/null && [ "$flag_no_install_check" = no ]; then
 		core.print_die "Expected file \"$script_path\" to have function \"$flag_fn_prefix.installed\""
-		
+
 	fi
 
 	# Configure first.
