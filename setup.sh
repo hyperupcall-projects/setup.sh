@@ -472,9 +472,22 @@ util.get_latest_github_release() {
 	fi
 
 	core.print_info "Fetching releases for $repo"
-	local latest_tag_name=
-	latest_tag_name=$(curl "${_CURL_CONFIG_SETUP[@]}" "${authorization[@]}" \
-		"https://api.github.com/repos/$repo/releases/latest" | jq -r '.tag_name')
+	local releases= latest_tag_name=
+	releases=$(curl "${_CURL_CONFIG_SETUP[@]}" "${authorization[@]}" \
+		"https://api.github.com/repos/$repo/releases/latest")
+	if jq -e '
+		if has("status") then
+			(.status | tonumber) as $s | $s >= 200 and $s < 300
+		else
+			false
+		end
+	' <<< "$releases" >/dev/null; then
+		local message=
+		message=$(jq -r '.message' <<< "$releases")
+		core.print_error "Failed to fetch releases. $message"
+		return 1
+	fi
+	latest_tag_name=$(printf '%s' "$releases" | jq -r '.tag_name')
 
 	local tag_name=
 	if [ -z "$flag_min_release_age" ]; then
@@ -483,9 +496,9 @@ util.get_latest_github_release() {
 	else
 		local page=1
 		while true; do
-			local releases=
+			# Repositories like Hugo have many releases so keep "per_page" small.
 			releases=$(curl "${_CURL_CONFIG_SETUP[@]}" "${authorization[@]}" \
-				"https://api.github.com/repos/$repo/releases?per_page=100&page=$page")
+				"https://api.github.com/repos/$repo/releases?per_page=20&page=$page")
 
 			local count=
 			count=$(printf '%s' "$releases" | jq 'length')
