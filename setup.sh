@@ -464,16 +464,20 @@ util.get_latest_github_release() {
 
 	local repo="$1"
 
-	local -a authorization=()
+	local -a github_args=()
 	if [ -n "$GITHUB_TOKEN" ]; then
-		authorization=(-H "Authorization: token $GITHUB_TOKEN")
+		github_args=(
+			-H "Accept: application/vnd.github+json"
+			-H "Authorization: token $GITHUB_TOKEN"
+			-H "X-GitHub-Api-Version: 2026-03-10"
+		)
 	else
 		core.print_warn "Expected GITHUB_TOKEN to be non-empty"
 	fi
 
 	core.print_info "Fetching releases for $repo"
 	local releases= latest_tag_name=
-	releases=$(curl "${_CURL_CONFIG_SETUP[@]}" "${authorization[@]}" \
+	releases=$(curl "${_CURL_CONFIG_SETUP[@]}" "${github_args[@]}" \
 		"https://api.github.com/repos/$repo/releases/latest")
 	if jq -e '
 		if has("status") then
@@ -497,7 +501,7 @@ util.get_latest_github_release() {
 		local page=1
 		while true; do
 			# Repositories like Hugo have many releases so keep "per_page" small.
-			releases=$(curl "${_CURL_CONFIG_SETUP[@]}" "${authorization[@]}" \
+			releases=$(curl "${_CURL_CONFIG_SETUP[@]}" "${github_args[@]}" \
 				"https://api.github.com/repos/$repo/releases?per_page=20&page=$page")
 
 			local count=
